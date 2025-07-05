@@ -1,0 +1,1 @@
+g++ main.cpp FCFS.cpp SJFNP.cpp SJFP.cpp GanttChart.cpp Stats.cpp RoundRobin.cpp Priority_NP.cpp Priority_P.cpp MLQ.cpp -o scheduler
