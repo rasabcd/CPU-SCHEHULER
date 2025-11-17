@@ -27,14 +27,14 @@ void Priority_NP(vector<Process> &Processes, ofstream &outputFile)
             if (arrival_time <= curtime)
             {
                 pq.push({Processes[i], i});
-                index = i + 1;
+                index++;
             }
             else
                 break;
         }
         if (pq.empty())
         {
-            curtime++;
+            curtime = Processes[index].arrival_time;
             continue;
         }
         ct++;
@@ -43,7 +43,7 @@ void Priority_NP(vector<Process> &Processes, ofstream &outputFile)
         pq.pop();
         int start_time = curtime;
         int end_time = curtime + Process.burst_time;
-        curtime=end_time;
+        curtime = end_time;
         Timeinfo.push_back({Process.pid, {start_time, end_time}});
         Processes[cur_index].completion_time = end_time;
         Processes[cur_index].turnaround_time = Processes[cur_index].completion_time - Processes[cur_index].arrival_time;

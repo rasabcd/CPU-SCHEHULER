@@ -59,5 +59,5 @@ void stats(vector<Process> &Processes, ofstream &outputFile)
         averageWating_time += Process.waiting_time;
     }
     averageWating_time = averageWating_time / n;
-    outputFile << std::setw(23) << std::left << "Average Waiting time = " << averageWating_time;
+    outputFile << "Average Waiting time = " << averageWating_time;
 }

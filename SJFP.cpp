@@ -15,10 +15,10 @@ void SJFP(vector<Process> &Processes, ofstream &outputFile)
     };
     sort(Processes.begin(), Processes.end(), comparator);
     priority_queue<pair<Process, int>, vector<pair<Process, int>>, Comparator> pq;
-    vector<int> remainingtime(n);
+    vector<int> actual_burstTime(n);
     for (int i = 0; i < n; i++)
     {
-        remainingtime[i] = Processes[i].burst_time;
+        actual_burstTime[i] = Processes[i].burst_time;
     }
     vector<pair<int, pair<int, int>>> Timeinfo;
     int curtime = 0;
@@ -39,7 +39,7 @@ void SJFP(vector<Process> &Processes, ofstream &outputFile)
         }
         if (pq.empty())
         {
-            curtime++;
+            curtime = Processes[index].arrival_time;
             continue;
         }
         auto Process = pq.top().first;
@@ -68,18 +68,24 @@ void SJFP(vector<Process> &Processes, ofstream &outputFile)
         {
             Timeinfo.push_back({pid, {start_time, end_time}});
         }
-        if (remainingtime[cur_index] == 1)
+        if (Processes[cur_index].burst_time == 1)
         {
             pq.pop();
             ct++;
             Processes[cur_index].completion_time = end_time;
             Processes[cur_index].turnaround_time = Processes[cur_index].completion_time - Processes[cur_index].arrival_time;
-            Processes[cur_index].waiting_time = Processes[cur_index].turnaround_time - Processes[cur_index].burst_time;
+            Processes[cur_index].waiting_time = Processes[cur_index].turnaround_time - actual_burstTime[cur_index];
         }
         else
         {
-            remainingtime[cur_index] -= 1;
+            pq.pop();
+            Processes[cur_index].burst_time -= 1;
+            pq.push({Processes[cur_index], cur_index});
         }
+    }
+    for (int i = 0; i < n; i++)
+    {
+        Processes[i].burst_time = actual_burstTime[i];
     }
     GanttChart(Timeinfo, outputFile);
     stats(Processes, outputFile);

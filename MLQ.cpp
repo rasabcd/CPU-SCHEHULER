@@ -21,12 +21,12 @@ void MLQ(vector<Process> &Processes, int timequantum, ofstream &outputFile)
     priority_queue<pair<Process, int>, vector<pair<Process, int>>, Comparator> System_prioritypremitive;
     queue<pair<Process, int>> Interactive_roundrobin;
     queue<pair<Process, int>> Background_FCFS;
-    queue<pair<int, int>> track_of_timequantum;
-    vector<int> remainingtime(n);
-
+    queue<pair<Process, int>> temp_storage_for_roundrobin;
+    map<int, int> track_of_timequantum;
+    vector<int> actual_burstTime(n);
     for (int i = 0; i < n; i++)
     {
-        remainingtime[i] = Processes[i].burst_time;
+        actual_burstTime[i] = Processes[i].burst_time;
     }
     int index = 0;
     while (ct < n)
@@ -46,11 +46,14 @@ void MLQ(vector<Process> &Processes, int timequantum, ofstream &outputFile)
             else
                 break;
         }
+        if (!temp_storage_for_roundrobin.empty())
+        {
+            Interactive_roundrobin.push(temp_storage_for_roundrobin.front());
+            temp_storage_for_roundrobin.pop();
+        }
 
         if (!System_prioritypremitive.empty())
         {
-            if (!track_of_timequantum.empty())
-                track_of_timequantum.pop();
             auto Process = System_prioritypremitive.top().first;
             int cur_index = System_prioritypremitive.top().second;
             int start_time = curtime;
@@ -77,17 +80,19 @@ void MLQ(vector<Process> &Processes, int timequantum, ofstream &outputFile)
             {
                 Timeinfo.push_back({pid, {start_time, end_time}});
             }
-            if (remainingtime[cur_index] == 1)
+            if (Processes[cur_index].burst_time == 1)
             {
                 System_prioritypremitive.pop();
                 ct++;
                 Processes[cur_index].completion_time = end_time;
                 Processes[cur_index].turnaround_time = Processes[cur_index].completion_time - Processes[cur_index].arrival_time;
-                Processes[cur_index].waiting_time = Processes[cur_index].turnaround_time - Processes[cur_index].burst_time;
+                Processes[cur_index].waiting_time = Processes[cur_index].turnaround_time - actual_burstTime[cur_index];
             }
             else
             {
-                remainingtime[cur_index] -= 1;
+                System_prioritypremitive.pop();
+                Processes[cur_index].burst_time -= 1;
+                System_prioritypremitive.push({Processes[cur_index], cur_index});
             }
         }
         else if (!Interactive_roundrobin.empty())
@@ -98,25 +103,6 @@ void MLQ(vector<Process> &Processes, int timequantum, ofstream &outputFile)
             int end_time = start_time + 1;
             int pid = Process.pid;
             curtime = end_time;
-            if (!track_of_timequantum.empty())
-            {
-                int trackpid = track_of_timequantum.front().first;
-                if (pid == trackpid)
-                {
-                    int time = track_of_timequantum.front().second;
-                    track_of_timequantum.pop();
-                    track_of_timequantum.push({pid, time + 1});
-                }
-                else
-                {
-                    track_of_timequantum.pop();
-                    track_of_timequantum.push({pid, 1});
-                }
-            }
-            else
-            {
-                track_of_timequantum.push({pid, 1});
-            }
             if (Timeinfo.size() >= 1)
             {
                 int size = Timeinfo.size();
@@ -137,21 +123,28 @@ void MLQ(vector<Process> &Processes, int timequantum, ofstream &outputFile)
             {
                 Timeinfo.push_back({pid, {start_time, end_time}});
             }
-            if (remainingtime[cur_index] == 1)
+            if (Processes[cur_index].burst_time == 1)
             {
                 Interactive_roundrobin.pop();
                 ct++;
                 Processes[cur_index].completion_time = end_time;
                 Processes[cur_index].turnaround_time = Processes[cur_index].completion_time - Processes[cur_index].arrival_time;
-                Processes[cur_index].waiting_time = Processes[cur_index].turnaround_time - Processes[cur_index].burst_time;
+                Processes[cur_index].waiting_time = Processes[cur_index].turnaround_time - actual_burstTime[cur_index];
             }
             else
             {
-                remainingtime[cur_index] -= 1;
-                if (track_of_timequantum.front().second == timequantum)
+                int remaining_time = timequantum - track_of_timequantum[pid];
+                if (remaining_time > 1)
                 {
+                    track_of_timequantum[pid]++;
+                    Processes[cur_index].burst_time -= 1;
+                }
+                else
+                {
+                    track_of_timequantum[pid] = 0;
+                    Processes[cur_index].burst_time -= 1;
                     Interactive_roundrobin.pop();
-                    Interactive_roundrobin.push({Process, cur_index});
+                    temp_storage_for_roundrobin.push({Processes[cur_index], cur_index});
                 }
             }
         }
@@ -183,23 +176,27 @@ void MLQ(vector<Process> &Processes, int timequantum, ofstream &outputFile)
             {
                 Timeinfo.push_back({pid, {start_time, end_time}});
             }
-            if (remainingtime[cur_index] == 1)
+            if (Processes[cur_index].burst_time == 1)
             {
                 Background_FCFS.pop();
                 ct++;
                 Processes[cur_index].completion_time = end_time;
                 Processes[cur_index].turnaround_time = Processes[cur_index].completion_time - Processes[cur_index].arrival_time;
-                Processes[cur_index].waiting_time = Processes[cur_index].turnaround_time - Processes[cur_index].burst_time;
+                Processes[cur_index].waiting_time = Processes[cur_index].turnaround_time - actual_burstTime[cur_index];
             }
             else
             {
-                remainingtime[cur_index] -= 1;
+                Processes[cur_index].burst_time -= 1;
             }
         }
         else
         {
             curtime++;
         }
+    }
+    for (int i = 0; i < n; i++)
+    {
+        Processes[i].burst_time = actual_burstTime[i];
     }
     GanttChart(Timeinfo, outputFile);
     stats(Processes, outputFile);
